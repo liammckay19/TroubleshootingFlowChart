@@ -7,113 +7,146 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
     <script src="data.js"></script>
     <style>
-        body { font-family: sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; height: 100vh; }
-        #search-container { margin-bottom: 20px; }
-        input[type="text"] { padding: 10px; width: 300px; font-size: 16px; }
-        /* The container for the flowchart */
-        #cy { flex-grow: 1; border: 1px solid #ccc; background-color: #f9f9f9; }
-        /* Table container */
-        #details-panel { margin-top: 20px; padding: 15px; background: #eee; min-height: 80px; }
+        body { font-family: sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; height: 100vh; background-color: #f0f2f5; }
+        #search-container { margin-bottom: 20px; z-index: 10; }
+        input[type="text"] { padding: 12px; width: 400px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        #cy { flex-grow: 1; border: 1px solid #ddd; border-radius: 12px; background-color: #ffffff; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); }
+        #details-panel { margin-top: 20px; padding: 20px; background: #333; color: white; border-radius: 12px; min-height: 100px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
+        #table-data { font-family: 'Courier New', Courier, monospace; line-height: 1.5; color: #00D1B2; }
+        h3 { margin-top: 0; color: #fff; border-bottom: 1px solid #555; padding-bottom: 10px; }
     </style>
 </head>
 <body>
 
     <div id="search-container">
-        <input type="text" id="searchInput" placeholder="Search by name, IP, model, etc. (Press Enter)">
+        <input type="text" id="searchInput" placeholder="Search Device, Rack, or Detail... (Press Enter)">
     </div>
 
     <div id="cy"></div>
 
     <div id="details-panel">
         <h3>Device Details</h3>
-        <div id="table-data">Click a device or search to see details here.</div>
+        <div id="table-data">Select a device to view signal path and hardware specs.</div>
     </div>
 
     <script>
-        // 1. Initialize the Graph
         const cy = cytoscape({
-            container: document.getElementById('cy'), // container to render in
-            
+            container: document.getElementById('cy'),
             elements: avElements,
-
-            // 2. Define the Styles (including the "light up" effect)
             style: [
                 {
                     selector: 'node',
                     style: {
                         'background-color': '#0074D9',
                         'label': 'data(label)',
-                        'color': '#333',
+                        'color': '#444',
+                        'font-size': '12px',
                         'text-valign': 'bottom',
-                        'text-margin-y': 5
+                        'text-margin-y': 8,
+                        'width': 40,
+                        'height': 40,
+                        // Fix overlapping text:
+                        'text-wrap': 'wrap',
+                        'text-max-width': '100px',
+                        'font-weight': 'bold'
                     }
                 },
                 {
                     selector: 'edge',
                     style: {
-                        'width': 3,
-                        'line-color': '#ccc',
-                        'target-arrow-color': '#ccc',
+                        'width': 2,
+                        'line-color': '#adb5bd',
+                        'target-arrow-color': '#adb5bd',
                         'target-arrow-shape': 'triangle',
-                        'curve-style': 'bezier'
+                        'curve-style': 'bezier',
+                        'opacity': 0.8
                     }
                 },
-                // The highlighted classes
                 {
                     selector: '.highlighted-node',
-                    style: { 'background-color': '#FF4136', 'border-width': 4, 'border-color': '#FF851B' }
+                    style: { 
+                        'background-color': '#FF4136', 
+                        'width': 50, 
+                        'height': 50, 
+                        'border-width': 4, 
+                        'border-color': '#FF851B',
+                        'color': '#000',
+                        'font-size': '14px'
+                    }
                 },
                 {
                     selector: '.highlighted-edge',
-                    style: { 'line-color': '#FF851B', 'target-arrow-color': '#FF851B', 'width': 5 }
+                    style: { 
+                        'line-color': '#FF851B', 
+                        'target-arrow-color': '#FF851B', 
+                        'width': 6,
+                        'opacity': 1,
+                        'z-index': 999
+                    }
                 }
             ],
-            layout: { name: 'breadthfirst', directed: true, spacingFactor: 1.5 }
+            // 'cose' layout is better for organic spacing than 'breadthfirst'
+            layout: { 
+                name: 'cose', 
+                nodeOverlap: 20, 
+                componentSpacing: 100, 
+                nodeRepulsion: 400000, 
+                edgeElasticity: 100, 
+                nestingFactor: 5, 
+                gravity: 80, 
+                numIter: 1000, 
+                initialTemp: 200, 
+                coolingFactor: 0.95, 
+                minTemp: 1.0 
+            }
         });
 
-        // 3. Search and Highlight Logic
         const searchInput = document.getElementById('searchInput');
         const detailsPanel = document.getElementById('table-data');
+
+        function highlightPath(node) {
+            cy.elements().removeClass('highlighted-node highlighted-edge');
+            detailsPanel.innerHTML = `<strong>NAME:</strong> ${node.data('label')}<br><strong>INFO:</strong> ${node.data('details')}`;
+            
+            node.addClass('highlighted-node');
+            // Highlighting the full upstream and downstream signal chain
+            node.successors().addClass('highlighted-node').edges().addClass('highlighted-edge');
+            node.predecessors().addClass('highlighted-node').edges().addClass('highlighted-edge');
+            
+            cy.animate({ center: { eles: node.union(node.connectedEdges()) }, zoom: 1.2 }, { duration: 500 });
+        }
 
         searchInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 const query = searchInput.value.toLowerCase();
-                
-                // Clear previous highlights
-                cy.elements().removeClass('highlighted-node highlighted-edge');
-
-                // Find the node that matches the search (searching label or details)
-                const targetNode = cy.nodes().filter(function(node) {
-                    const label = node.data('label').toLowerCase();
-                    const details = node.data('details').toLowerCase();
-                    return label.includes(query) || details.includes(query);
-                });
+                const targetNode = cy.nodes().filter(n => 
+                    n.data('label').toLowerCase().includes(query) || 
+                    n.data('details').toLowerCase().includes(query)
+                );
 
                 if (targetNode.length > 0) {
-                    // Update the table details
-                    detailsPanel.innerHTML = `<strong>${targetNode.data('label')}</strong><br>${targetNode.data('details')}`;
-                    
-                    // Center the camera on the node
-                    cy.animate({ center: { eles: targetNode } });
-
-                    // LIGHT IT UP: Highlight the node, and everything connected to it (successors and predecessors)
-                    targetNode.addClass('highlighted-node');
-                    targetNode.successors().addClass('highlighted-node').edges().addClass('highlighted-edge');
-                    targetNode.predecessors().addClass('highlighted-node').edges().addClass('highlighted-edge');
+                    highlightPath(targetNode[0]);
                 } else {
-                    detailsPanel.innerHTML = "No device found.";
+                    detailsPanel.innerHTML = "Device not found in database.";
                 }
             }
         });
 
-        // 4. Click to view table data
         cy.on('tap', 'node', function(evt){
-            const node = evt.target;
-            detailsPanel.innerHTML = `<strong>${node.data('label')}</strong><br>${node.data('details')}`;
+            highlightPath(evt.target);
+        });
+
+        // Click on background to reset
+        cy.on('tap', function(event){
+            if( event.target === cy ){
+                cy.elements().removeClass('highlighted-node highlighted-edge');
+                detailsPanel.innerHTML = "Select a device to view signal path and hardware specs.";
+            }
         });
     </script>
+
     <footer style="margin-top: 20px; text-align: center; border-top: 1px solid #ddd; padding-top: 10px;">
-        <a href="editor.html" style="color: #888; font-size: 12px; text-decoration: none;">⚙️ Open Editor / Code Generator</a>
+        <a href="editor.html" style="color: #0074D9; font-size: 14px; text-decoration: none; font-weight: bold;">⚙️ Access CAD Data Editor</a>
     </footer>
 </body>
 </html>
