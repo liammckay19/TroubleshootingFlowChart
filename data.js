@@ -1,52 +1,25 @@
 const avElements = [
-  // --- RACK 1: THE CORE ---
-  { data: { id: 'ultrix', label: 'ROSS Ultrix Router', details: 'Main Brains. Routes Inputs to Outputs. | Rack: 1' } },
-  { data: { id: 'carb1', label: 'Ross Carbonite 1', details: 'Main Production Switcher. | Rack: 1' } },
-  { data: { id: 'mosaic', label: 'Ross Mosaic (Carbonite 2)', details: 'Switcher Blade for Mosaic. | Rack: 1' } },
-  { data: { id: 'pc_dell', label: 'Dell PC', details: 'Mini-DP to Cobalt. USB to KVM/Perfect Cue. | Rack: 1' } },
+  // --- CORE SYSTEM DEVICES (Nodes) ---
+  { data: { id: 'codec_pro', label: 'Logitech Codec Pro', details: 'The brain of the room. Processes Video, Audio, and Network data. | Location: Rack' } },
+  { data: { id: 'rally_bar', label: 'Rally Bar', details: 'Main camera, speakers, and mic array. Connected via HDMI & USB. | Location: Front of Room' } },
+  { data: { id: 'table_hub', label: 'Rally Table Hub', details: 'Point of connection for table peripherals. Cat6 link to Display Hub. | Location: Table' } },
+  { data: { id: 'laptop', label: 'Guest Laptop', details: 'User source for Content Sharing or BYOD. | Location: Table' } },
+  { data: { id: 'tap_panel', label: 'Logitech Tap', details: '10.1" Touch controller. Joins meetings and manages room controls. | Location: Table' } },
+  { data: { id: 'ptz_camera', label: 'Rally PTZ Camera', details: 'Secondary camera for wider room coverage or back-of-room shots. | Location: Wall Mount' } },
+  { data: { id: 'main_display', label: '85" 4K Display', details: 'Primary visual output for people and content. | Location: Front of Room' } },
+  { data: { id: 'external_speakers', label: 'Ceiling Speakers', details: 'Reinforced audio output for larger room coverage. | Location: Ceiling' } },
 
-  // --- RACK 2: CONVERSION & CAPTURE ---
-  { data: { id: 'mac_studios', label: 'Mac Studio Bank', details: 'Qty 8 units. USB-C Video Out. | Rack: 2' } },
-  { data: { id: 'cobalt', label: 'Cobalt Card Cage', details: 'HDMI to SDI Conversion for PCs/Macs. | Rack: 2' } },
-  { data: { id: 'aja_ki_pro', label: 'AJA Ki Pro', details: 'SDI Video Recorders (ProRes Proxy). | Rack: 2' } },
-  { data: { id: 'pearl', label: 'Pearl Streamers', details: 'Kaltura/RTMP Streaming Encoders. | Rack: 2' } },
-  { data: { id: 'cisco_vtc', label: 'Cisco VTC Codec', details: 'Video Conferencing Display Outputs. | Rack: 2' } },
-
-  // --- RACK 3: AUDIO & PROCESSING ---
-  { data: { id: 'shure_axient', label: 'Shure Axient Wireless', details: '16-Channel RF Mic System. Dante Output. | Rack: 3' } },
-  { data: { id: 'yamaha_rio', label: 'Yamaha Rio I/O', details: 'Analog to Dante Converter. | Rack: 3' } },
-  { data: { id: 'dante_net', label: 'Dante AV Net', details: 'Network Switch for all Audio Traffic. | Rack: 3' } },
-  { data: { id: 'yamaha_dm7', label: 'Yamaha DM7 Console', details: 'Primary Audio Mixing Engine. | Rack: 3' } },
-  { data: { id: 'yamaha_rmio', label: 'Yamaha RMio64-D', details: 'MADI to Dante Sync/Converter. | Rack: 3' } },
-  { data: { id: 'galileo', label: 'Meyer Galileo Galaxy', details: 'Loudspeaker Processor & Matrix. | Rack: 3' } },
-  { data: { id: 'dante_clock', label: 'Dante Master Clock', details: 'Studio Tech 5401A Leader Clock. | Rack: 3' } },
-
-  // --- RACK 5: OUTPUTS ---
-  { data: { id: 'novastar', label: 'Novastar H15', details: 'Video Wall Processor. MiniME 1-4. | Rack: 5' } },
-  { data: { id: 'speakers', label: 'Speakers and Subs', details: 'Main Room PA System. | Rack: 5' } },
-
-  // --- SIGNAL FLOW CONNECTIONS (EDGES) ---
+  // --- SIGNAL FLOW CONNECTIONS (Edges) ---
   
-  // Video Paths
-  { data: { id: 'v1', source: 'pc_dell', target: 'cobalt', label: 'HDMI' } },
-  { data: { id: 'v2', source: 'mac_studios', target: 'cobalt', label: 'USB-C' } },
-  { data: { id: 'v3', source: 'cobalt', target: 'ultrix', label: 'SDI' } },
-  { data: { id: 'v4', source: 'ultrix', target: 'carb1', label: 'SDI' } },
-  { data: { id: 'v5', source: 'carb1', target: 'novastar', label: 'SDI' } },
-  { data: { id: 'v6', source: 'ultrix', target: 'pearl', label: 'SDI' } },
-  { data: { id: 'v7', source: 'ultrix', target: 'aja_ki_pro', label: 'SDI' } },
-  { data: { id: 'v8', source: 'ultrix', target: 'cisco_vtc', label: 'SDI' } },
+  // Video & Control Paths
+  { data: { id: 'v1', source: 'laptop', target: 'table_hub', label: 'USB-C (BYOD/Sharing)' } },
+  { data: { id: 'v2', source: 'table_hub', target: 'codec_pro', label: 'Category Link' } },
+  { data: { id: 'v3', source: 'ptz_camera', target: 'codec_pro', label: 'USB / HDMI' } },
+  { data: { id: 'v4', source: 'rally_bar', target: 'codec_pro', label: 'USB (Camera/Mics)' } },
+  { data: { id: 'v5', source: 'codec_pro', target: 'main_display', label: 'HDMI Out 1' } },
+  { data: { id: 'v6', source: 'tap_panel', target: 'codec_pro', label: 'USB Control' } },
 
   // Audio Paths
-  { data: { id: 'a1', source: 'shure_axient', target: 'dante_net', label: 'Dante' } },
-  { data: { id: 'a2', source: 'yamaha_rio', target: 'dante_net', label: 'Dante' } },
-  { data: { id: 'a3', source: 'dante_net', target: 'yamaha_dm7', label: 'Dante' } },
-  { data: { id: 'a4', source: 'ultrix', target: 'yamaha_rmio', label: 'MADI' } },
-  { data: { id: 'a5', source: 'yamaha_rmio', target: 'dante_net', label: 'Dante' } },
-  { data: { id: 'a6', source: 'yamaha_dm7', target: 'galileo', label: 'Analog/Dante' } },
-  { data: { id: 'a7', source: 'galileo', target: 'speakers', label: 'Analog' } },
-  
-  // Clocking
-  { data: { id: 'c1', source: 'dante_clock', target: 'dante_net', label: 'PTP Sync' } },
-  { data: { id: 'c2', source: 'ultrix', target: 'yamaha_rmio', label: 'Word Clock' } }
+  { data: { id: 'a1', source: 'codec_pro', target: 'rally_bar', label: 'HDMI (Audio Out)' } },
+  { data: { id: 'a2', source: 'codec_pro', target: 'external_speakers', label: 'Amplified Audio' } }
 ];
