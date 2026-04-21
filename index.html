@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AV Troubleshooting CAD</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
+    <style>
+        body { font-family: sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; height: 100vh; }
+        #search-container { margin-bottom: 20px; }
+        input[type="text"] { padding: 10px; width: 300px; font-size: 16px; }
+        /* The container for the flowchart */
+        #cy { flex-grow: 1; border: 1px solid #ccc; background-color: #f9f9f9; }
+        /* Table container */
+        #details-panel { margin-top: 20px; padding: 15px; background: #eee; min-height: 80px; }
+    </style>
+</head>
+<body>
+
+    <div id="search-container">
+        <input type="text" id="searchInput" placeholder="Search by name, IP, model, etc. (Press Enter)">
+    </div>
+
+    <div id="cy"></div>
+
+    <div id="details-panel">
+        <h3>Device Details</h3>
+        <div id="table-data">Click a device or search to see details here.</div>
+    </div>
+
+    <script>
+        // 1. Initialize the Graph
+        const cy = cytoscape({
+            container: document.getElementById('cy'), // container to render in
+            
+            elements: [
+              // Nodes
+              { data: { id: 'mic1', label: 'Wireless Mic 1', details: 'IP: 10.0.0.5 | Rack: Stage' } },
+              { data: { id: 'dsp', label: 'Main DSP', details: 'IP: 10.0.0.10 | Model: Q-SYS Core' } },
+              { data: { id: 'amp1', label: 'Amplifier A', details: 'IP: 10.0.0.15 | Rack: IDF-1' } },
+              { data: { id: 'speaker1', label: 'Left Speaker', details: 'Zone: Main Hall' } },
+              // Edges
+              { data: { id: 'e1', source: 'mic1', target: 'dsp' } },
+              { data: { id: 'e2', source: 'dsp', target: 'amp1' } },
+              { data: { id: 'e3', source: 'amp1', target: 'speaker1' } }
+            ],
+
+            // 2. Define the Styles (including the "light up" effect)
+            style: [
+                {
+                    selector: 'node',
+                    style: {
+                        'background-color': '#0074D9',
+                        'label': 'data(label)',
+                        'color': '#333',
+                        'text-valign': 'bottom',
+                        'text-margin-y': 5
+                    }
+                },
+                {
+                    selector: 'edge',
+                    style: {
+                        'width': 3,
+                        'line-color': '#ccc',
+                        'target-arrow-color': '#ccc',
+                        'target-arrow-shape': 'triangle',
+                        'curve-style': 'bezier'
+                    }
+                },
+                // The highlighted classes
+                {
+                    selector: '.highlighted-node',
+                    style: { 'background-color': '#FF4136', 'border-width': 4, 'border-color': '#FF851B' }
+                },
+                {
+                    selector: '.highlighted-edge',
+                    style: { 'line-color': '#FF851B', 'target-arrow-color': '#FF851B', 'width': 5 }
+                }
+            ],
+            layout: { name: 'breadthfirst', directed: true, spacingFactor: 1.5 }
+        });
+
+        // 3. Search and Highlight Logic
+        const searchInput = document.getElementById('searchInput');
+        const detailsPanel = document.getElementById('table-data');
+
+        searchInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                const query = searchInput.value.toLowerCase();
+                
+                // Clear previous highlights
+                cy.elements().removeClass('highlighted-node highlighted-edge');
+
+                // Find the node that matches the search (searching label or details)
+                const targetNode = cy.nodes().filter(function(node) {
+                    const label = node.data('label').toLowerCase();
+                    const details = node.data('details').toLowerCase();
+                    return label.includes(query) || details.includes(query);
+                });
+
+                if (targetNode.length > 0) {
+                    // Update the table details
+                    detailsPanel.innerHTML = `<strong>${targetNode.data('label')}</strong><br>${targetNode.data('details')}`;
+                    
+                    // Center the camera on the node
+                    cy.animate({ center: { eles: targetNode } });
+
+                    // LIGHT IT UP: Highlight the node, and everything connected to it (successors and predecessors)
+                    targetNode.addClass('highlighted-node');
+                    targetNode.successors().addClass('highlighted-node').edges().addClass('highlighted-edge');
+                    targetNode.predecessors().addClass('highlighted-node').edges().addClass('highlighted-edge');
+                } else {
+                    detailsPanel.innerHTML = "No device found.";
+                }
+            }
+        });
+
+        // 4. Click to view table data
+        cy.on('tap', 'node', function(evt){
+            const node = evt.target;
+            detailsPanel.innerHTML = `<strong>${node.data('label')}</strong><br>${node.data('details')}`;
+        });
+    </script>
+</body>
+</html>
