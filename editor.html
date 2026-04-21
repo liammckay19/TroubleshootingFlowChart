@@ -53,18 +53,47 @@
         // Load existing data from data.js
         let myElements = typeof avElements !== 'undefined' ? JSON.parse(JSON.stringify(avElements)) : [];
         let firstClickedNode = null;
-
+        
         const cy = cytoscape({
             container: document.getElementById('cy'),
             elements: myElements,
             style: [
-                { selector: 'node', style: { 'background-color': '#0074D9', 'label': 'data(label)', 'text-valign': 'bottom', 'text-margin-y': 5, 'font-size': '10px' } },
-                { selector: 'edge', style: { 'width': 2, 'line-color': '#ccc', 'target-arrow-shape': 'triangle', 'curve-style': 'bezier' } },
-                { selector: '.selected', style: { 'background-color': '#FF4136', 'border-width': 4, 'border-color': '#FF851B' } }
+                { 
+                    selector: 'node', 
+                    style: { 
+                        'background-color': '#0074D9', 
+                        'label': 'data(label)', 
+                        'text-valign': 'bottom', 
+                        'text-margin-y': 5, 
+                        'font-size': '10px',
+                        'text-wrap': 'wrap',
+                        'text-max-width': '80px'
+                    } 
+                },
+                { 
+                    selector: 'edge', 
+                    style: { 
+                        'width': 2, 
+                        'line-color': '#ccc', 
+                        'target-arrow-shape': 'triangle', 
+                        'target-arrow-color': '#ccc',
+                        'curve-style': 'bezier' 
+                    } 
+                },
+                { 
+                    selector: '.selected', 
+                    style: { 'background-color': '#FF4136', 'border-width': 4, 'border-color': '#FF851B' } 
+                }
             ],
-            layout: { name: 'cose', padding: 30 }
+            // Switched to 'breadthfirst' with directed: true to stop the drifting
+            layout: { 
+                name: 'breadthfirst', 
+                directed: true, 
+                padding: 50,
+                spacingFactor: 1.2
+            }
         });
-
+        
         function updateOutput() {
             const outputArea = document.getElementById('outputCode');
             const cleanElements = cy.elements().map(ele => {
@@ -72,59 +101,62 @@
             });
             outputArea.value = `const avElements = ${JSON.stringify(cleanElements, null, 2)};`;
         }
-
+        
         function addNode() {
             const id = document.getElementById('nodeId').value.trim();
             const label = document.getElementById('nodeLabel').value.trim();
             const details = document.getElementById('nodeDetails').value.trim();
-
+        
             if(!id || !label) return alert("ID and Label are required");
-
-            const newNode = { data: { id, label, details } };
-            cy.add(newNode);
-            cy.layout({ name: 'cose' }).run();
+        
+            cy.add({ data: { id, label, details } });
+            
+            // Re-run layout and center the view
+            cy.layout({ name: 'breadthfirst', directed: true, animate: true }).run();
+            cy.fit(); 
+            
             updateOutput();
-
+        
             document.getElementById('nodeId').value = '';
             document.getElementById('nodeLabel').value = '';
             document.getElementById('nodeDetails').value = '';
         }
-
+        
         // VISUAL JOIN LOGIC
         cy.on('tap', 'node', function(evt) {
             const node = evt.target;
-
+        
             if (!firstClickedNode) {
-                // First click: Selection
                 firstClickedNode = node;
                 node.addClass('selected');
                 document.getElementById('statusBar').innerHTML = `Source: <span class="highlight">${node.data('label')}</span> - Now click the TARGET device.`;
             } else {
-                // Second click: Join
                 const source = firstClickedNode.id();
                 const target = node.id();
-
+        
                 if (source !== target) {
                     const edgeId = `e_${source}_${target}_${Math.floor(Math.random()*1000)}`;
                     cy.add({ data: { id: edgeId, source: source, target: target } });
+                    
+                    // Re-run layout to organize the new connection
+                    cy.layout({ name: 'breadthfirst', directed: true, animate: true }).run();
+                    cy.fit(); 
                     updateOutput();
                 }
-
-                // Reset selection
+        
                 firstClickedNode.removeClass('selected');
                 firstClickedNode = null;
                 document.getElementById('statusBar').innerHTML = `Mode: <span class="highlight">Visual Join</span> - Click a SOURCE node, then a TARGET node to connect them.`;
             }
         });
-
+        
         function copyCode() {
             const outputArea = document.getElementById('outputCode');
             outputArea.select();
             document.execCommand('copy');
             alert("Updated data.js copied to clipboard!");
         }
-
-        // Initialize textarea on load
+        
         updateOutput();
     </script>
 </body>
