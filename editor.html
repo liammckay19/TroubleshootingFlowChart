@@ -1,1 +1,120 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AV CAD Editor</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; padding: 20px; display: flex; gap: 20px; background-color: #f4f4f4;}
+        .panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex: 1; }
+        h2 { margin-top: 0; color: #333; border-bottom: 2px solid #0074D9; padding-bottom: 5px; }
+        label { display: block; margin-top: 10px; font-weight: bold; font-size: 14px;}
+        input { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+        button { margin-top: 15px; padding: 10px 15px; background: #0074D9; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold;}
+        button:hover { background: #0056a3; }
+        textarea { width: 100%; height: 400px; margin-top: 10px; font-family: monospace; padding: 10px; box-sizing: border-box; white-space: pre;}
+        .edge-note { font-size: 12px; color: #666; font-style: italic;}
+    </style>
+</head>
+<body>
+
+    <div class="panel">
+        <h2>1. Add a Device (Node)</h2>
+        <label>Device ID (no spaces, e.g., 'mic2'):</label>
+        <input type="text" id="nodeId" placeholder="mic2">
+        
+        <label>Display Label (e.g., 'Wireless Mic 2'):</label>
+        <input type="text" id="nodeLabel" placeholder="Wireless Mic 2">
+        
+        <label>Details (IP, Model, Rack):</label>
+        <input type="text" id="nodeDetails" placeholder="IP: 10.0.0.6 | Rack: Stage">
+        
+        <button onclick="addNode()">+ Add Device</button>
+
+        <h2 style="margin-top: 40px;">2. Add a Connection (Edge)</h2>
+        <span class="edge-note">Connects the Output of one device to the Input of another.</span>
+        
+        <label>Source Device ID (Output):</label>
+        <input type="text" id="edgeSource" placeholder="mic2">
+        
+        <label>Target Device ID (Input):</label>
+        <input type="text" id="edgeTarget" placeholder="dsp">
+        
+        <button onclick="addEdge()">+ Add Connection</button>
+        <button onclick="clearData()" style="background:#FF4136; float:right;">Clear All</button>
+    </div>
+
+    <div class="panel">
+        <h2>3. Generated Code</h2>
+        <p>Copy this block and paste it into your <strong>data.js</strong> file on GitHub.</p>
+        <textarea id="outputCode"></textarea>
+        <button onclick="copyCode()" style="background:#2ECC40;">Copy Code to Clipboard</button>
+    </div>
+
+    <script>
+        // Array to hold our current working data
+        let myElements = [];
+
+        function updateOutput() {
+            const outputArea = document.getElementById('outputCode');
+            // Format it exactly how data.js needs it
+            const jsonString = JSON.stringify(myElements, null, 2);
+            outputArea.value = `const avElements = ${jsonString};`;
+        }
+
+        function addNode() {
+            const id = document.getElementById('nodeId').value.trim();
+            const label = document.getElementById('nodeLabel').value.trim();
+            const details = document.getElementById('nodeDetails').value.trim();
+
+            if(!id) return alert("Device ID is required!");
+
+            myElements.push({ data: { id: id, label: label, details: details } });
+            
+            // Clear inputs
+            document.getElementById('nodeId').value = '';
+            document.getElementById('nodeLabel').value = '';
+            document.getElementById('nodeDetails').value = '';
+            
+            updateOutput();
+        }
+
+        function addEdge() {
+            const source = document.getElementById('edgeSource').value.trim();
+            const target = document.getElementById('edgeTarget').value.trim();
+            
+            if(!source || !target) return alert("Source and Target IDs are required!");
+
+            // Create a unique ID for the edge
+            const edgeId = `e_${source}_${target}_${Math.floor(Math.random() * 1000)}`;
+
+            myElements.push({ data: { id: edgeId, source: source, target: target } });
+            
+            // Clear inputs
+            document.getElementById('edgeSource').value = '';
+            document.getElementById('edgeTarget').value = '';
+            
+            updateOutput();
+        }
+
+        function clearData() {
+            if(confirm("Are you sure you want to clear the current code?")) {
+                myElements = [];
+                updateOutput();
+            }
+        }
+
+        function copyCode() {
+            const outputArea = document.getElementById('outputCode');
+            outputArea.select();
+            document.execCommand('copy');
+            alert("Code copied! Now paste this into data.js on GitHub.");
+        }
+
+        // Initialize empty view
+        updateOutput();
+    </script>
+
+</body>
+</html>
