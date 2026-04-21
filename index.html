@@ -33,17 +33,7 @@
         const cy = cytoscape({
             container: document.getElementById('cy'), // container to render in
             
-            elements: [
-              // Nodes
-              { data: { id: 'mic1', label: 'Wireless Mic 1', details: 'IP: 10.0.0.5 | Rack: Stage' } },
-              { data: { id: 'dsp', label: 'Main DSP', details: 'IP: 10.0.0.10 | Model: Q-SYS Core' } },
-              { data: { id: 'amp1', label: 'Amplifier A', details: 'IP: 10.0.0.15 | Rack: IDF-1' } },
-              { data: { id: 'speaker1', label: 'Left Speaker', details: 'Zone: Main Hall' } },
-              // Edges
-              { data: { id: 'e1', source: 'mic1', target: 'dsp' } },
-              { data: { id: 'e2', source: 'dsp', target: 'amp1' } },
-              { data: { id: 'e3', source: 'amp1', target: 'speaker1' } }
-            ],
+            elements: avElements,
 
             // 2. Define the Styles (including the "light up" effect)
             style: [
