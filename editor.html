@@ -8,18 +8,15 @@
     <script src="data.js"></script>
     <style>
         body { font-family: sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; height: 100vh; background-color: #f0f2f5; }
-        
-        #header-controls { display: flex; gap: 12px; margin-bottom: 20px; align-items: flex-end; z-index: 10; flex-wrap: wrap; }
-        
+        #header-controls { display: flex; gap: 10px; margin-bottom: 20px; align-items: flex-end; z-index: 10; flex-wrap: wrap; }
         .input-group { display: flex; flex-direction: column; }
         .input-group label { font-size: 10px; font-weight: bold; color: #666; margin-bottom: 4px; }
+        input[type="text"] { padding: 8px; width: 130px; font-size: 13px; border: 1px solid #ccc; border-radius: 6px; }
         
-        input[type="text"] { padding: 8px; width: 140px; font-size: 13px; border: 1px solid #ccc; border-radius: 6px; }
-        
-        button { padding: 8px 16px; background: #0074D9; color: white; border: none; cursor: pointer; border-radius: 6px; font-weight: bold; font-size: 13px; }
+        button { padding: 8px 14px; background: #0074D9; color: white; border: none; cursor: pointer; border-radius: 6px; font-weight: bold; font-size: 12px; }
         button:hover { background: #0056a3; }
-        button.active { background: #FF4136; } /* Red when "Join Mode" is ON */
-        button.secondary { background: #888; }
+        button.active { background: #FF4136; }
+        button.secondary { background: #555; }
         
         #cy { flex-grow: 1; border: 1px solid #ddd; border-radius: 12px; background-color: #ffffff; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); }
 
@@ -28,33 +25,28 @@
             display: flex; gap: 20px; min-height: 100px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); 
         }
         .panel-section { flex: 1; }
-        #status-msg { color: #00D1B2; font-weight: bold; margin-bottom: 5px; font-size: 12px; height: 18px; }
-        
+        #status-msg { color: #00D1B2; font-weight: bold; margin-bottom: 5px; font-size: 12px; }
         textarea { 
             width: 100%; height: 60px; background: #222; color: #2ECC40; border: 1px solid #444; 
             padding: 8px; font-family: monospace; font-size: 11px; border-radius: 4px; resize: none;
         }
-        h3 { margin: 0 0 8px 0; font-size: 13px; color: #ccc; text-transform: uppercase; letter-spacing: 1px; }
+        h3 { margin: 0 0 8px 0; font-size: 13px; color: #ccc; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
     <div id="header-controls">
-        <div class="input-group">
-            <label>ID</label>
-            <input type="text" id="nodeId" placeholder="e.g. apple_tv">
-        </div>
-        <div class="input-group">
-            <label>LABEL</label>
-            <input type="text" id="nodeLabel" placeholder="e.g. Apple TV">
-        </div>
-        <div class="input-group">
-            <label>DETAILS</label>
-            <input type="text" id="nodeDetails" placeholder="Rack, IP...">
-        </div>
+        <div class="input-group"><label>ID</label><input type="text" id="nodeId" placeholder="ID"></div>
+        <div class="input-group"><label>LABEL</label><input type="text" id="nodeLabel" placeholder="Label"></div>
+        <div class="input-group"><label>DETAILS</label><input type="text" id="nodeDetails" placeholder="Details"></div>
+        
         <button onclick="addNode()">Add Device</button>
         <button id="joinBtn" onclick="toggleJoinMode()" class="secondary">Join Mode: OFF</button>
-        <button onclick="undoLast()" style="background: #FF851B;">Undo Connection</button>
+        
+        <div style="border-left: 1px solid #ccc; margin: 0 10px; height: 30px;"></div>
+        
+        <button onclick="undo()" style="background: #FF851B;">Undo</button>
+        <button onclick="redo()" style="background: #B10DC9;">Redo</button>
         <button onclick="copyCode()" style="background:#2ECC40;">Copy data.js</button>
     </div>
 
@@ -63,8 +55,11 @@
     <div id="details-panel">
         <div class="panel-section">
             <h3>Editor Status</h3>
-            <div id="status-msg">Standard Selection Mode</div>
-            <div style="font-size: 11px; color: #999;">Drag nodes to organize. Enable Join Mode to connect them.</div>
+            <div id="status-msg">Selection Mode</div>
+            <div style="font-size: 11px; color: #999;">
+                • <b>Drag</b> to move nodes. <br>
+                • <b>Right-Click / Long-Press</b> a node or wire to delete it.
+            </div>
         </div>
         <div class="panel-section">
             <h3>Live data.js Output</h3>
@@ -75,116 +70,89 @@
     <script>
         let isJoinMode = false;
         let firstClickedNode = null;
-        let edgeHistory = [];
+        let undoStack = [];
+        let redoStack = [];
 
         const cy = cytoscape({
             container: document.getElementById('cy'),
             elements: typeof avElements !== 'undefined' ? JSON.parse(JSON.stringify(avElements)) : [],
             style: [
-                {
-                    selector: 'node',
-                    style: {
-                        'background-color': '#0074D9',
-                        'label': 'data(label)',
-                        'color': '#444',
-                        'font-size': '11px',
-                        'text-valign': 'bottom',
-                        'text-margin-y': 6,
-                        'width': 35,
-                        'height': 35,
-                        'text-wrap': 'wrap',
-                        'text-max-width': '80px'
-                    }
-                },
-                {
-                    selector: 'edge',
-                    style: {
-                        'width': 2,
-                        'line-color': '#adb5bd',
-                        'target-arrow-color': '#adb5bd',
-                        'target-arrow-shape': 'triangle',
-                        'curve-style': 'bezier'
-                    }
-                },
-                {
-                    selector: '.selected',
-                    style: { 'background-color': '#FF4136', 'line-color': '#FF4136' }
-                }
+                { selector: 'node', style: { 'background-color': '#0074D9', 'label': 'data(label)', 'color': '#444', 'font-size': '11px', 'text-valign': 'bottom', 'text-margin-y': 6, 'width': 35, 'height': 35 } },
+                { selector: 'edge', style: { 'width': 2, 'line-color': '#adb5bd', 'target-arrow-shape': 'triangle', 'curve-style': 'bezier' } },
+                { selector: '.selected', style: { 'background-color': '#FF4136' } }
             ],
-            // Initial layout is organic, but we don't call .run() again to avoid resetting
             layout: { name: 'cose', padding: 40 }
         });
 
         function updateOutput() {
-            const outputArea = document.getElementById('outputCode');
-            // We strip out the position data to keep the data.js file clean
             const cleanElements = cy.elements().map(ele => ({ data: ele.data() }));
-            outputArea.value = `const avElements = ${JSON.stringify(cleanElements, null, 2)};`;
+            document.getElementById('outputCode').value = `const avElements = ${JSON.stringify(cleanElements, null, 2)};`;
+        }
+
+        // --- CORE ACTIONS ---
+        function addNode() {
+            const id = document.getElementById('nodeId').value.trim();
+            const label = document.getElementById('nodeLabel').value.trim();
+            if(!id || !label) return;
+
+            const newNode = cy.add({ data: { id, label, details: document.getElementById('nodeDetails').value }, position: { x: 100, y: 100 } });
+            pushAction('add', newNode);
+            updateOutput();
         }
 
         function toggleJoinMode() {
             isJoinMode = !isJoinMode;
             const btn = document.getElementById('joinBtn');
-            const status = document.getElementById('status-msg');
-            
-            if (isJoinMode) {
-                btn.innerHTML = "Join Mode: ON";
-                btn.className = "active";
-                status.innerHTML = "JOIN MODE ACTIVE: Select Source Node";
-                cy.autoungrabify(true); // Stop nodes from moving while wiring
-            } else {
-                btn.innerHTML = "Join Mode: OFF";
-                btn.className = "secondary";
-                status.innerHTML = "Standard Selection Mode";
-                cy.autoungrabify(false); // Allow moving nodes again
-                if(firstClickedNode) firstClickedNode.removeClass('selected');
-                firstClickedNode = null;
-            }
+            btn.innerHTML = isJoinMode ? "Join Mode: ON" : "Join Mode: OFF";
+            btn.className = isJoinMode ? "active" : "secondary";
+            cy.autoungrabify(isJoinMode);
         }
 
-        function addNode() {
-            const id = document.getElementById('nodeId').value.trim();
-            const label = document.getElementById('nodeLabel').value.trim();
-            const details = document.getElementById('nodeDetails').value.trim();
-            if(!id || !label) return;
+        // --- UNDO / REDO LOGIC ---
+        function pushAction(type, ele) {
+            undoStack.push({ type, json: ele.json() });
+            redoStack = []; 
+        }
 
-            cy.add({ data: { id, label, details }, position: { x: 100, y: 100 } });
+        function undo() {
+            if (undoStack.length === 0) return;
+            const action = undoStack.pop();
+            const ele = cy.getElementById(action.json.data.id);
+            redoStack.push({ type: action.type, json: ele.json() });
+            cy.remove(ele);
             updateOutput();
         }
 
-        function undoLast() {
-            if (edgeHistory.length > 0) {
-                const lastEdgeId = edgeHistory.pop();
-                cy.remove(`#${lastEdgeId}`);
-                updateOutput();
-            }
+        function redo() {
+            if (redoStack.length === 0) return;
+            const action = redoStack.pop();
+            const newEle = cy.add(action.json);
+            undoStack.push({ type: action.type, json: newEle.json() });
+            updateOutput();
         }
 
+        // --- INTERACTION LOGIC ---
         cy.on('tap', 'node', function(evt) {
             if (!isJoinMode) return;
-
             const node = evt.target;
-            const status = document.getElementById('status-msg');
-
             if (!firstClickedNode) {
                 firstClickedNode = node;
                 node.addClass('selected');
-                status.innerHTML = `SOURCE: ${node.data('label')} -> Select Target`;
             } else {
-                const source = firstClickedNode.id();
-                const target = node.id();
-
-                if (source !== target) {
-                    const newEdgeId = `e${Date.now()}`;
-                    cy.add({ data: { id: newEdgeId, source, target } });
-                    edgeHistory.push(newEdgeId);
-                    updateOutput();
-                }
-
+                const edge = cy.add({ data: { id: `e${Date.now()}`, source: firstClickedNode.id(), target: node.id() } });
+                pushAction('add', edge);
                 firstClickedNode.removeClass('selected');
                 firstClickedNode = null;
-                status.innerHTML = "JOIN MODE ACTIVE: Select Source Node";
+                updateOutput();
             }
+        });
+
+        // DELETE FUNCTIONALITY: Context Menu (Right Click)
+        cy.on('cxttap', 'node, edge', function(evt) {
+            const ele = evt.target;
+            pushAction('delete', ele); // We can undo a delete too!
+            cy.remove(ele);
+            updateOutput();
         });
 
         function copyCode() {
