@@ -37,5 +37,54 @@ const avElements = [
   { "data": { "id": "fiber_patch", "label": "Optical Fiber Patch Bay", "details": "WP (Wall Plate) dry lines. | Rack: 5" } },
   { "data": { "id": "network_patch", "label": "Network Patch Bay", "details": "WP (Wall Plate) network ties. | Rack: 5" } },
   { "data": { "id": "novastar_h15", "label": "Novastar H15", "details": "Video wall processor. Manages MiniME 1-4 inputs. | Rack: 5" } },
-  { "data": { "id": "corp_net_patch", "label": "Adobe Corp Net Patch", "details": "Access to Corporate Net over Ethernet. | Rack: 5" } }
+  { "data": { "id": "corp_net_patch", "label": "Adobe Corp Net Patch", "details": "Access to Corporate Net over Ethernet. | Rack: 5" } },
+  {
+    "data": {
+      "id": "e_ultrix_ultripower_123",
+      "source": "ultrix",
+      "target": "ultripower"
+    }
+  },
+  {
+    "data": {
+      "id": "e_ultrix_ultracore_525",
+      "source": "ultrix",
+      "target": "ultracore"
+    }
+  },
+  {
+    "data": {
+      "id": "e_ultrix_carb1_290",
+      "source": "ultrix",
+      "target": "carb1"
+    }
+  },
+  {
+    "data": {
+      "id": "e_ultrix_mosaic_43",
+      "source": "ultrix",
+      "target": "mosaic"
+    }
+  },
+  {
+    "data": {
+      "id": "e_ultrix_sdi_jacks_r1_633",
+      "source": "ultrix",
+      "target": "sdi_jacks_r1"
+    }
+  },
+  {
+    "data": {
+      "id": "e_pc_dell_cobalt_cage_40",
+      "source": "pc_dell",
+      "target": "cobalt_cage"
+    }
+  },
+  {
+    "data": {
+      "id": "e_cobalt_cage_carb1_980",
+      "source": "cobalt_cage",
+      "target": "carb1"
+    }
+  }
 ];
