@@ -30,119 +30,125 @@
     </div>
 
     <script>
-        const cy = cytoscape({
-            container: document.getElementById('cy'),
-            elements: avElements,
-            style: [
-                {
-                    selector: 'node',
-                    style: {
-                        'background-color': '#0074D9',
-                        'label': 'data(label)',
-                        'color': '#444',
-                        'font-size': '12px',
-                        'text-valign': 'bottom',
-                        'text-margin-y': 8,
-                        'width': 40,
-                        'height': 40,
-                        // Fix overlapping text:
-                        'text-wrap': 'wrap',
-                        'text-max-width': '100px',
-                        'font-weight': 'bold'
+        const password = prompt("Enter password to view CAD:");
+        if (password !== "YourSecret123") {
+            document.body.innerHTML = "<h1>Access Denied</h1>";
+        } else {
+            const cy = cytoscape({
+                container: document.getElementById('cy'),
+                elements: avElements,
+                style: [
+                    {
+                        selector: 'node',
+                        style: {
+                            'background-color': '#0074D9',
+                            'label': 'data(label)',
+                            'color': '#444',
+                            'font-size': '12px',
+                            'text-valign': 'bottom',
+                            'text-margin-y': 8,
+                            'width': 40,
+                            'height': 40,
+                            // Fix overlapping text:
+                            'text-wrap': 'wrap',
+                            'text-max-width': '100px',
+                            'font-weight': 'bold'
+                        }
+                    },
+                    {
+                        selector: 'edge',
+                        style: {
+                            'width': 2,
+                            'line-color': '#adb5bd',
+                            'target-arrow-color': '#adb5bd',
+                            'target-arrow-shape': 'triangle',
+                            'curve-style': 'bezier',
+                            'opacity': 0.8
+                        }
+                    },
+                    {
+                        selector: '.highlighted-node',
+                        style: { 
+                            'background-color': '#FF4136', 
+                            'width': 50, 
+                            'height': 50, 
+                            'border-width': 4, 
+                            'border-color': '#FF851B',
+                            'color': '#000',
+                            'font-size': '14px'
+                        }
+                    },
+                    {
+                        selector: '.highlighted-edge',
+                        style: { 
+                            'line-color': '#FF851B', 
+                            'target-arrow-color': '#FF851B', 
+                            'width': 6,
+                            'opacity': 1,
+                            'z-index': 999
+                        }
                     }
-                },
-                {
-                    selector: 'edge',
-                    style: {
-                        'width': 2,
-                        'line-color': '#adb5bd',
-                        'target-arrow-color': '#adb5bd',
-                        'target-arrow-shape': 'triangle',
-                        'curve-style': 'bezier',
-                        'opacity': 0.8
-                    }
-                },
-                {
-                    selector: '.highlighted-node',
-                    style: { 
-                        'background-color': '#FF4136', 
-                        'width': 50, 
-                        'height': 50, 
-                        'border-width': 4, 
-                        'border-color': '#FF851B',
-                        'color': '#000',
-                        'font-size': '14px'
-                    }
-                },
-                {
-                    selector: '.highlighted-edge',
-                    style: { 
-                        'line-color': '#FF851B', 
-                        'target-arrow-color': '#FF851B', 
-                        'width': 6,
-                        'opacity': 1,
-                        'z-index': 999
-                    }
+                ],
+                // 'cose' layout is better for organic spacing than 'breadthfirst'
+                layout: { 
+                    name: 'cose', 
+                    nodeOverlap: 20, 
+                    componentSpacing: 100, 
+                    nodeRepulsion: 400000, 
+                    edgeElasticity: 100, 
+                    nestingFactor: 5, 
+                    gravity: 80, 
+                    numIter: 1000, 
+                    initialTemp: 200, 
+                    coolingFactor: 0.95, 
+                    minTemp: 1.0 
                 }
-            ],
-            // 'cose' layout is better for organic spacing than 'breadthfirst'
-            layout: { 
-                name: 'cose', 
-                nodeOverlap: 20, 
-                componentSpacing: 100, 
-                nodeRepulsion: 400000, 
-                edgeElasticity: 100, 
-                nestingFactor: 5, 
-                gravity: 80, 
-                numIter: 1000, 
-                initialTemp: 200, 
-                coolingFactor: 0.95, 
-                minTemp: 1.0 
-            }
-        });
+            });
 
-        const searchInput = document.getElementById('searchInput');
-        const detailsPanel = document.getElementById('table-data');
-
-        function highlightPath(node) {
-            cy.elements().removeClass('highlighted-node highlighted-edge');
-            detailsPanel.innerHTML = `<strong>NAME:</strong> ${node.data('label')}<br><strong>INFO:</strong> ${node.data('details')}`;
-            
-            node.addClass('highlighted-node');
-            // Highlighting the full upstream and downstream signal chain
-            node.successors().addClass('highlighted-node').edges().addClass('highlighted-edge');
-            node.predecessors().addClass('highlighted-node').edges().addClass('highlighted-edge');
-            
-            cy.animate({ center: { eles: node.union(node.connectedEdges()) }, zoom: 1.2 }, { duration: 500 });
-        }
-
-        searchInput.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                const query = searchInput.value.toLowerCase();
-                const targetNode = cy.nodes().filter(n => 
-                    n.data('label').toLowerCase().includes(query) || 
-                    n.data('details').toLowerCase().includes(query)
-                );
-
-                if (targetNode.length > 0) {
-                    highlightPath(targetNode[0]);
-                } else {
-                    detailsPanel.innerHTML = "Device not found in database.";
-                }
-            }
-        });
-
-        cy.on('tap', 'node', function(evt){
-            highlightPath(evt.target);
-        });
-
-        // Click on background to reset
-        cy.on('tap', function(event){
-            if( event.target === cy ){
+            const searchInput = document.getElementById('searchInput');
+            const detailsPanel = document.getElementById('table-data');
+    
+            function highlightPath(node) {
                 cy.elements().removeClass('highlighted-node highlighted-edge');
-                detailsPanel.innerHTML = "Select a device to view signal path and hardware specs.";
+                detailsPanel.innerHTML = `<strong>NAME:</strong> ${node.data('label')}<br><strong>INFO:</strong> ${node.data('details')}`;
+                
+                node.addClass('highlighted-node');
+                // Highlighting the full upstream and downstream signal chain
+                node.successors().addClass('highlighted-node').edges().addClass('highlighted-edge');
+                node.predecessors().addClass('highlighted-node').edges().addClass('highlighted-edge');
+                
+                cy.animate({ center: { eles: node.union(node.connectedEdges()) }, zoom: 1.2 }, { duration: 500 });
             }
-        });
+    
+            searchInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    const query = searchInput.value.toLowerCase();
+                    const targetNode = cy.nodes().filter(n => 
+                        n.data('label').toLowerCase().includes(query) || 
+                        n.data('details').toLowerCase().includes(query)
+                    );
+    
+                    if (targetNode.length > 0) {
+                        highlightPath(targetNode[0]);
+                    } else {
+                        detailsPanel.innerHTML = "Device not found in database.";
+                    }
+                }
+            });
+    
+            cy.on('tap', 'node', function(evt){
+                highlightPath(evt.target);
+            });
+    
+            // Click on background to reset
+            cy.on('tap', function(event){
+                if( event.target === cy ){
+                    cy.elements().removeClass('highlighted-node highlighted-edge');
+                    detailsPanel.innerHTML = "Select a device to view signal path and hardware specs.";
+                }
+            });
+        }
+        
     </script>
 
     <footer style="margin-top: 20px; text-align: center; border-top: 1px solid #ddd; padding-top: 10px;">
